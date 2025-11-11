@@ -23,7 +23,6 @@ export const handlers = [
     if (token === 'valid-token') {
       return HttpResponse.json({
         user: {
-          _id: 'user-1',
           email: 'test@example.com',
           role: 'user'
         }

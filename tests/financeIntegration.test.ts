@@ -10,10 +10,10 @@ vi.mock('../src/models/User', () => ({
     findOne: vi.fn(async (query: any) => {
       console.log('Mocked User.findOne called with query:', query);
       if (query.email === 'test@example.com') {
-        return { _id: 'user-1', email: 'test@example.com', role: 'user' };
+        return { _id: 'user-1', email: 'test@example.com', role: 'client' };
       }
       if (query._id === 'user-1') {
-        return { _id: 'user-1', email: 'test@example.com', role: 'user' };
+        return { _id: 'user-1', email: 'test@example.com', role: 'client' };
       }
       return null;
     })
@@ -31,6 +31,7 @@ vi.mock('../src/models/Finance', () => ({
 
 // Importar após os mocks
 import financeService from '../src/services/FinanceServices';
+import { User } from '../src/models/User';
 
 beforeAll(() => {
   startServer();
@@ -67,11 +68,11 @@ describe('Finance Integration Tests - com middlewares', () => {
       });
     });
 
-    // Verificar que o middleware populou req.user
-    expect(mockNext).toHaveBeenCalled();
-    expect(mockReq.user).toBeDefined();
-    expect(mockReq.user._id).toBe('user-1');
-    expect(mockReq.user.email).toBe('test@example.com');
+  // Verificar que o middleware populou req.user (apenas email + role)
+  expect(mockNext).toHaveBeenCalled();
+  expect(mockReq.user).toBeDefined();
+  expect(mockReq.user.email).toBe('test@example.com');
+  expect(mockReq.user._id).toBeUndefined();
 
     console.log('req.user após protectedMiddleware:', mockReq.user);
 
@@ -82,9 +83,14 @@ describe('Finance Integration Tests - com middlewares', () => {
     expect(mockNext2).toHaveBeenCalled();
     console.log('req.body após UserMiddleware:', mockReq.body);
 
-    // Agora criar o financiamento usando o userId do middleware
+    // Buscar o id do usuário pelo email (como faria o controller/middleware)
+    const userDoc = await User.findOne({ email: mockReq.user.email });
+    expect(userDoc).toBeDefined();
+    const userId = (userDoc as any)._id;
+
+    // Agora criar o financiamento usando o userId obtido
     const payload = {
-      userId: mockReq.user._id,
+      userId,
       value: 20000,
       countOfMonths: 12,
       brand: 'Toyota',
@@ -92,8 +98,8 @@ describe('Finance Integration Tests - com middlewares', () => {
       type: 'Sedan'
     } as any;
 
-    const result = await financeService.createFinance(mockReq.user._id, payload);
-    
+    const result = await financeService.createFinance(userId, payload);
+    console.log(result)
     expect(result.status).toBe(201);
     expect(result.finance).toBeDefined();
     expect(result.finance.vehicleSpecs).toBeDefined();
