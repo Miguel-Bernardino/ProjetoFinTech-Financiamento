@@ -136,6 +136,71 @@ const swaggerSpec = {
           '501': { description: 'Não implementado' }
         }
       }
+    },
+    '/api/finances/{id}/sign-contract': {
+      post: {
+        tags: ['Finances'],
+        summary: 'Assinar contrato de financiamento',
+        description: 'Assina o contrato de um financiamento aprovado e notifica o microserviço de pontos',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { 
+            in: 'path', 
+            name: 'id', 
+            required: true, 
+            schema: { type: 'string' },
+            description: 'ID do financiamento'
+          }
+        ],
+        responses: {
+          '200': { 
+            description: 'Contrato assinado com sucesso',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    data: { $ref: '#/components/schemas/Finance' }
+                  }
+                }
+              }
+            }
+          },
+          '400': { 
+            description: 'Requisição inválida ou contrato já assinado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          },
+          '401': { 
+            description: 'Não autorizado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          },
+          '403': { 
+            description: 'Usuário não é proprietário do financiamento',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          },
+          '404': { 
+            description: 'Financiamento não encontrado',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
     }
   }
 };

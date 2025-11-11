@@ -16,6 +16,8 @@ export interface IFinance extends Document {
   financeDate: Date; // Data do Financiamento
   status: "approved" | "rejected" | "pending" | "in_progress" | "completed"; // Status mais detalhado
   deleted: boolean;
+  contractStatus?: "unsigned" | "signed" | "cancelled"; // Status do contrato
+  contractSignedAt?: Date; // Data de assinatura do contrato
 }
 
 export const financeSchema = new Schema<IFinance>(
@@ -85,6 +87,15 @@ export const financeSchema = new Schema<IFinance>(
     deleted: {
       type: Boolean,
       default: false
+    },
+    contractStatus: {
+      type: String,
+      enum: ["unsigned", "signed", "cancelled"],
+      default: "unsigned"
+    },
+    contractSignedAt: {
+      type: Date,
+      required: false
     }
 
   },

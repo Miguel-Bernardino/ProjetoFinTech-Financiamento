@@ -155,4 +155,34 @@ router.delete('/finances/:id', financeController.DeleteFinance);
  */
 router.patch('/finances/:id/restore', financeController.RestoreFinance);
 
+//Assinatura de contrato
+/**
+ * @openapi
+ * /api/finances/{id}/sign-contract:
+ *   post:
+ *     tags: [Finances]
+ *     summary: Assinar contrato de financiamento
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do financiamento
+ *     responses:
+ *       200:
+ *         description: Contrato assinado com sucesso
+ *       400:
+ *         description: Requisição inválida ou contrato já assinado
+ *       401:
+ *         description: Não autorizado
+ *       403:
+ *         description: Usuário não é proprietário do financiamento
+ *       404:
+ *         description: Financiamento não encontrado
+ */
+router.post('/finances/:id/sign-contract', financeController.SignContract);
+
 export default router;

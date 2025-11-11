@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import financeService from '../services/FinanceServices';
+import contractService from '../services/ContractService';
 import { IFinance } from '../models/Finance';
 
 // Helper: tenta obter o ID do usuário a partir do token (req.user)
@@ -70,9 +71,9 @@ export const GetFinanceById = async (req: Request, res: Response, next: NextFunc
 
 export const FullUpdateFinance = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Admins não podem atualizar financiamentos desta forma (apenas alterar status via lógica específica)
-        if (!isUserAdmin(req)) {
-            return res.status(403).json({ message: 'Administradores não podem atualizar financiamentos como usuário comum.' });
+
+        if (isUserAdmin(req)) {
+            return res.status(403).json({ message: 'Usuários não podem atualizar financiamentos.' });
         }
 
         const financeId = req.params.id;
@@ -100,9 +101,9 @@ export const FullUpdateFinance = async (req: Request, res: Response, next: NextF
 
 export const PartialUpdateFinance = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Admins não podem atualizar financiamentos desta forma (apenas alterar status via lógica específica)
-        if (!isUserAdmin(req)) {
-            return res.status(403).json({ message: 'Administradores não podem atualizar financiamentos como usuário comum.' });
+        
+        if (isUserAdmin(req)) {
+            return res.status(403).json({ message: 'Usuarios não podem atualizar financiamentos.' });
         }
 
         const financeId = req.params.id;
@@ -125,7 +126,7 @@ export const PartialUpdateFinance = async (req: Request, res: Response, next: Ne
 export const DeleteFinance = async (req: Request, res: Response, next: NextFunction) => {
     try {
 
-        if (!isUserAdmin(req)) {
+        if (isUserAdmin(req)) {
             return res.status(403).json({ message: 'Usuário não autorizado.' });
         }
 
@@ -144,7 +145,7 @@ export const DeleteFinance = async (req: Request, res: Response, next: NextFunct
 export const RestoreFinance = async (req: Request, res: Response, next: NextFunction) => {
     try {
         console.log('RestoreFinance controller called');
-        if (!isUserAdmin(req)) {
+        if (isUserAdmin(req)) {
             return res.status(403).json({ message: 'Usuário não autorizado.' });
         }
 
@@ -154,6 +155,29 @@ export const RestoreFinance = async (req: Request, res: Response, next: NextFunc
             return res.status(400).json({ message: 'ID do usuário e ID do financiamento são obrigatórios.' });
         
         const result = await financeService.RestoreFinance(financeId, userId);
+        return res.status(result.status).json(result);
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const SignContract = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        console.log('SignContract controller called');
+        
+        const financeId = req.params.id;
+        const userId = await resolveUserIdFromRequest(req);
+        
+        if (!financeId) {
+            return res.status(400).json({ message: 'ID do financiamento é obrigatório.' });
+        }
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Usuário não autenticado.' });
+        }
+
+        const result = await contractService.signContract(financeId, userId);
         return res.status(result.status).json(result);
 
     } catch (error) {
