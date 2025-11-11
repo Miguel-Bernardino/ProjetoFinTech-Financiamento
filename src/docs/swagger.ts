@@ -1,15 +1,5 @@
-import swaggerJsdoc from 'swagger-jsdoc';
-import path from 'path';
-
-// Vercel executa código a partir de /var/task/, precisamos ajustar caminhos
-const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
-
-// Em produção/Vercel, apontar para .js compilado com caminho absoluto
-const apisPaths = isProduction
-  ? [path.join(process.cwd(), 'dist', 'routes', '*.js')]
-  : ['./src/routes/*.ts'];
-
-const swaggerDefinition = {
+// Spec estático do Swagger - garante que funciona na Vercel
+const swaggerSpec = {
   openapi: '3.0.3',
   info: {
     title: 'FinTech Finance API',
@@ -48,13 +38,106 @@ const swaggerDefinition = {
       }
     }
   },
-  security: [{ bearerAuth: [] }]
+  security: [{ bearerAuth: [] }],
+  paths: {
+    '/api/finances': {
+      post: {
+        tags: ['Finances'],
+        summary: 'Criar um financiamento',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Finance' }
+            }
+          }
+        },
+        responses: {
+          '201': { description: 'Financiamento criado' },
+          '400': { description: 'Requisição inválida' },
+          '401': { description: 'Não autorizado' },
+          '403': { description: 'Proibido' }
+        }
+      },
+      get: {
+        tags: ['Finances'],
+        summary: 'Listar financiamentos do usuário autenticado',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': { description: 'OK' }
+        }
+      }
+    },
+    '/api/finances/{id}': {
+      get: {
+        tags: ['Finances'],
+        summary: 'Obter financiamento por ID',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } }
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '404': { description: 'Não encontrado' }
+        }
+      },
+      put: {
+        tags: ['Finances'],
+        summary: 'Atualizar completamente um financiamento',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Finance' }
+            }
+          }
+        },
+        responses: {
+          '200': { description: 'OK' }
+        }
+      },
+      patch: {
+        tags: ['Finances'],
+        summary: 'Atualização parcial',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } }
+        ],
+        responses: {
+          '200': { description: 'OK' }
+        }
+      },
+      delete: {
+        tags: ['Finances'],
+        summary: 'Deletar financiamento',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } }
+        ],
+        responses: {
+          '200': { description: 'OK' }
+        }
+      }
+    },
+    '/api/finances/{id}/restore': {
+      patch: {
+        tags: ['Finances'],
+        summary: 'Restaurar financiamento',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } }
+        ],
+        responses: {
+          '501': { description: 'Não implementado' }
+        }
+      }
+    }
+  }
 };
 
-const options = {
-  swaggerDefinition,
-  apis: apisPaths
-};
-
-const swaggerSpec = swaggerJsdoc(options as any);
 export default swaggerSpec;
