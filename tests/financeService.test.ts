@@ -5,7 +5,10 @@ import { http, HttpResponse } from 'msw';
 // Mocks para modelos do Mongoose (interceptamos findOne e create)
 vi.mock('../src/models/User', () => ({
   User: {
-    findOne: vi.fn(async (query: any) => ({ _id: query._id ?? 'user-1', role: 'user' }))
+    findOne: vi.fn(async (query: any) => {
+        console.log('Mocked User.findOne called with query:', query);
+        return { _id: query._id , role: 'user' }
+    })
   }
 }));
 

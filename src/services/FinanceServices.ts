@@ -62,7 +62,6 @@ export function calculateAmortizationSchedule(principal: number, annualInterestR
 export async function createFinance(userID: string, payload: Partial<IFinance>): Promise<any> {
     try {
         const { userId, value, downPayment = 0, interestRate = 0, countOfMonths = 0, financeDate = new Date(), brand, modelName, type, status } = payload as any;
-
         const usertokened = await isUserExists(userID);
         const user = await isUserExists(userId);
 

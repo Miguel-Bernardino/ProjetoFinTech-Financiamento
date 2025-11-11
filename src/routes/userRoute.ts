@@ -4,6 +4,6 @@ import { UserMiddleware } from '../middleware/UserMiddleware';
 
 const router = Router();
 
-router.get('/protected', UserMiddleware, User);
+router.get('/user', UserMiddleware, User);
 
 export default router;

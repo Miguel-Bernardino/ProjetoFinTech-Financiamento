@@ -14,10 +14,26 @@ export const handlers = [
     });
   }),
 
-  // USER_SERVICE_URL exemplo (não usado diretamente por createFinance no momento,
-  // mas adicionado para cobrir testes que possam requisitar essa URL)
-  http.get('http://localhost:4000/api/users', () => {
-    return HttpResponse.json([{ id: 'user-1', role: 'client' }]);
+  // USER_SERVICE_URL/validate-token - Valida token JWT
+  http.post('http://localhost:4000/api/users/validate-token', async ({ request }) => {
+    const body = await request.json() as any;
+    const { token } = body;
+
+    // Simula validação de token
+    if (token === 'valid-token') {
+      return HttpResponse.json({
+        user: {
+          _id: 'user-1',
+          email: 'test@example.com',
+          role: 'user'
+        }
+      }, { status: 200 });
+    }
+
+    return HttpResponse.json(
+      { message: 'Token inválido' },
+      { status: 401 }
+    );
   })
 ];
 
