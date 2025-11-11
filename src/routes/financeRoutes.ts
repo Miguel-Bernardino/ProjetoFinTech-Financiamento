@@ -7,18 +7,152 @@ const router = Router();
 router.use(protectedMiddleware);
 
 //Criacao de financiamentos
+/**
+ * @openapi
+ * /api/finances:
+ *   post:
+ *     tags: [Finances]
+ *     summary: Criar um financiamento
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Finance'
+ *     responses:
+ *       201:
+ *         description: Financiamento criado
+ *       400:
+ *         description: Requisição inválida
+ *       401:
+ *         description: Não autorizado
+ *       403:
+ *         description: Proibido
+ */
 router.post('/finances', financeController.CreateFinance);
 
 //Obter financiamentos do usuario
-router.get("/finances", financeController.GetFinancesByUserId);
+/**
+ * @openapi
+ * /api/finances:
+ *   get:
+ *     tags: [Finances]
+ *     summary: Listar financiamentos do usuário autenticado
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get('/finances', financeController.GetFinancesByUserId);
+/**
+ * @openapi
+ * /api/finances/{id}:
+ *   get:
+ *     tags: [Finances]
+ *     summary: Obter financiamento por ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: OK
+ *       404:
+ *         description: Não encontrado
+ */
 router.get('/finances/:id', financeController.GetFinanceById);
 
 //Atualizacao de financiamentos
+/**
+ * @openapi
+ * /api/finances/{id}:
+ *   put:
+ *     tags: [Finances]
+ *     summary: Atualizar completamente um financiamento
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Finance'
+ *     responses:
+ *       200:
+ *         description: OK
+ */
 router.put('/finances/:id', financeController.FullUpdateFinance);
+/**
+ * @openapi
+ * /api/finances/{id}:
+ *   patch:
+ *     tags: [Finances]
+ *     summary: Atualização parcial
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: OK
+ */
 router.patch('/finances/:id', financeController.PartialUpdateFinance);
 
 //Delecao e restauracao de financiamentos
-router.delete('/finances', financeController.DeleteFinance);
-router.patch('/restore', financeController.RestoreFinance);
+/**
+ * @openapi
+ * /api/finances/{id}:
+ *   delete:
+ *     tags: [Finances]
+ *     summary: Deletar financiamento
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.delete('/finances/:id', financeController.DeleteFinance);
+/**
+ * @openapi
+ * /api/finances/{id}/restore:
+ *   patch:
+ *     tags: [Finances]
+ *     summary: Restaurar financiamento
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       501:
+ *         description: Não implementado
+ */
+router.patch('/finances/:id/restore', financeController.RestoreFinance);
 
 export default router;

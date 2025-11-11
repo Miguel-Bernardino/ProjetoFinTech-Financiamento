@@ -1,4 +1,3 @@
-import { json } from 'stream/consumers';
 import { IFinance, Finance } from '../models/Finance';
 
 async function isValidUser(financeId: any, userTokenedId: string): Promise<any> {

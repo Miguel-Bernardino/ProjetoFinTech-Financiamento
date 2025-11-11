@@ -6,6 +6,8 @@ import { errorHandler } from './middleware/errorMiddlleware';
 import protectedRoute from "./routes/protectedRoute";
 import financeRoute from "./routes/financeRoutes";
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './docs/swagger';
 
 const app = express();
 
@@ -36,11 +38,18 @@ app.get("/", (req: Request, res: Response) => {
 // Rotas
 app.use('/api', protectedRoute);
 app.use('/api', financeRoute);
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Middleware de tratamento de erros
 app.use(errorHandler);
 
-// Inicializa o servidor Express
-app.listen(PORT, () => {
-  console.log(`✅ Servidor rodando na porta ${PORT}`);
-});
+// Inicializa o servidor apenas fora da Vercel
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`✅ Servidor rodando na porta ${PORT}`);
+  });
+}
+
+// Exporta o app para a Vercel
+export default app;
