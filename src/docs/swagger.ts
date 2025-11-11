@@ -1,10 +1,13 @@
 import swaggerJsdoc from 'swagger-jsdoc';
+import path from 'path';
 
-// Para produção na Vercel, usar caminhos .js (após build) e no dev aceitar .ts
-const apisPaths = [
-  './src/routes/*.ts', // dev
-  './dist/routes/*.js' // build
-];
+// Vercel executa código a partir de /var/task/, precisamos ajustar caminhos
+const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+
+// Em produção/Vercel, apontar para .js compilado com caminho absoluto
+const apisPaths = isProduction
+  ? [path.join(process.cwd(), 'dist', 'routes', '*.js')]
+  : ['./src/routes/*.ts'];
 
 const swaggerDefinition = {
   openapi: '3.0.3',
