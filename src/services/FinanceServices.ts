@@ -82,29 +82,26 @@ export async function createFinance(userID: string, payload: Partial<IFinance>):
         const installmentValue = payload.installmentValue ?? calculateInstallment(principal, interestRate, countOfMonths);
 
         // Buscar características do veículo pela API externa (se configurada)
+        // GET apenas RECEBE os dados (brand, modelname, type) - não envia parâmetros
         let vehicleSpecs: any = undefined;
         const baseUrl = process.env.VEHICLE_API_URL;
         if (baseUrl) {
-            if (!brand || !modelName) {
-                throw new Error('brand e modelName são necessários para buscar os dados do veículo.');
-            }
-
-            const url: string = `${baseUrl}?brand=${encodeURIComponent(brand)}&model=${encodeURIComponent(modelName)}&type=${encodeURIComponent(type)}`;
             try {
-                const resp = await fetch(url);
+                // GET simples - apenas recebe os dados disponíveis da API
+                const resp = await fetch(baseUrl);
                 if (!resp.ok) {
-                    // Quando a URL está configurada, falha na API deve lançar exceção conforme solicitado
                     throw new Error(`Falha ao obter dados do veículo: status ${resp.status}`);
                 }
 
-                vehicleSpecs = await resp.json();
-                // garantir que o tipo do veículo (ex: SUV, Sedan) esteja presente em vehicleSpecs
+                const data = await resp.json();
+                
+                // A API retorna os dados com {brand, modelname, type, ...}
+                vehicleSpecs = data;
+                
                 if (!vehicleSpecs) {
                     throw new Error('Resposta da API de veículo vazia ou inválida.');
                 }
-                vehicleSpecs.type = vehicleSpecs.type ?? type;
             } catch (err: any) {
-                // Re-lançar a exceção para que a criação falhe quando não for possível obter os dados do veículo
                 throw new Error(`Não foi possível obter os dados do veículo: ${err?.message ?? err}`);
             }
         }
