@@ -46,6 +46,10 @@ export const CreateFinance = async (req: Request, res: Response, next: NextFunct
 export const GetFinancesByUserId = async (req: Request, res: Response, next: NextFunction) => {
     try {
 
+        if (isUserAdmin(req)) {
+            return res.status(403).json({ message: 'Administradores não possuem financiamentos próprios.' });
+        }
+
         const userId = await resolveUserIdFromRequest(req);
         if (!userId) return res.status(400).json({ message: 'ID do usuário é obrigatório.' });
 
@@ -58,6 +62,10 @@ export const GetFinancesByUserId = async (req: Request, res: Response, next: Nex
 
 export const GetFinanceById = async (req: Request, res: Response, next: NextFunction) => {
     try {
+        if (isUserAdmin(req)) {
+            return res.status(403).json({ message: 'Administradores não podem acessar financiamentos desta forma.' });
+        }
+
         const financeId = req.params.id;
         const userId = await resolveUserIdFromRequest(req);
         if (!userId || !financeId) return res.status(400).json({ message: 'ID do usuário e ID do financiamento são obrigatórios.' });
@@ -73,7 +81,7 @@ export const FullUpdateFinance = async (req: Request, res: Response, next: NextF
     try {
 
         if (isUserAdmin(req)) {
-            return res.status(403).json({ message: 'Usuários não podem atualizar financiamentos.' });
+            return res.status(403).json({ message: 'Administradores não podem atualizar financiamentos como usuário comum.' });
         }
 
         const financeId = req.params.id;
@@ -103,7 +111,7 @@ export const PartialUpdateFinance = async (req: Request, res: Response, next: Ne
     try {
         
         if (isUserAdmin(req)) {
-            return res.status(403).json({ message: 'Usuarios não podem atualizar financiamentos.' });
+            return res.status(403).json({ message: 'Administradores não podem atualizar financiamentos como usuário comum.' });
         }
 
         const financeId = req.params.id;
@@ -127,7 +135,7 @@ export const DeleteFinance = async (req: Request, res: Response, next: NextFunct
     try {
 
         if (isUserAdmin(req)) {
-            return res.status(403).json({ message: 'Usuário não autorizado.' });
+            return res.status(403).json({ message: 'Administradores não podem deletar financiamentos como usuário comum.' });
         }
 
         const financeId = req.body.id;
@@ -177,7 +185,11 @@ export const SignContract = async (req: Request, res: Response, next: NextFuncti
             return res.status(401).json({ message: 'Usuário não autenticado.' });
         }
 
-        const result = await contractService.signContract(financeId, userId);
+    // Prefer user email from the token if available
+    const tokenUser = (req as any).user as any;
+    const userEmail = tokenUser && tokenUser.email ? tokenUser.email : undefined;
+
+    const result = await contractService.signContract(financeId, userId, userEmail);
         return res.status(result.status).json(result);
 
     } catch (error) {

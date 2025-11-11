@@ -34,6 +34,37 @@ export const handlers = [
       { message: 'Token inválido' },
       { status: 401 }
     );
+  }),
+
+  // Endpoint primary do protectedMiddleware: auth/token/introspect
+  http.post('https://frontend-full-stack-atv-ueam.vercel.app/auth/token/introspect', async ({ request }) => {
+    const body = await request.json() as any;
+    const { token } = body;
+
+    if (token === 'valid-token') {
+      return HttpResponse.json({
+        user: {
+          _id: 'user-1',
+          email: 'test@example.com',
+          role: 'client'
+        }
+      }, { status: 200 });
+    }
+
+    if (token === 'admin-token') {
+      return HttpResponse.json({
+        user: {
+          _id: 'admin-1',
+          email: 'admin@example.com',
+          role: 'admin'
+        }
+      }, { status: 200 });
+    }
+
+    return HttpResponse.json(
+      { message: 'Token inválido' },
+      { status: 401 }
+    );
   })
 ];
 

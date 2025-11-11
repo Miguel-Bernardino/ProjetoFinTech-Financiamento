@@ -1,33 +1,107 @@
-import nodemailer from 'nodemailer';
+// Use require to avoid needing @types for nodemailer in this repo
+const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
+// Create a transporter on demand. Prefer real SMTP from env, but if not available
+// or sending fails, fallback to an Ethereal test account (dev only) so emails always
+// can be inspected during development.
+async function createTransporter() {
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
   }
-});
+
+  // No SMTP configured — create Ethereal test account
+  const testAccount = await nodemailer.createTestAccount();
+  return nodemailer.createTransport({
+    host: 'smtp.ethereal.email',
+    port: 587,
+    secure: false,
+    auth: {
+      user: testAccount.user,
+      pass: testAccount.pass
+    }
+  });
+}
+
+interface EmailAttachment {
+  filename: string;
+  content: Buffer | string;
+  contentType?: string;
+}
 
 interface EmailOptions {
   to: string;
   subject: string;
   html: string;
+  attachments?: EmailAttachment[];
 }
 
-export async function sendEmail({ to, subject, html }: EmailOptions): Promise<boolean> {
+export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  const { to, subject, html, attachments } = options;
+
   try {
-    await transporter.sendMail({
+    const transporter = await createTransporter();
+
+    const mailOptions: any = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to,
       subject,
       html
-    });
+    };
+
+    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      mailOptions.attachments = attachments.map((a: any) => ({
+        filename: a.filename,
+        content: a.content,
+        contentType: a.contentType
+      }));
+    }
+
+    const info = await transporter.sendMail(mailOptions);
+
+    // If using Ethereal (test account), nodemailer provides a preview URL — log it for dev.
+    try {
+      const preview = nodemailer.getTestMessageUrl(info);
+      if (preview) console.log('E-mail preview URL:', preview);
+    } catch (e) {
+      // ignore
+    }
+
     return true;
   } catch (error) {
     console.error('Erro ao enviar e-mail:', error);
-    return false;
+    // As a last resort, attempt to fallback to Ethereal if we failed using real SMTP.
+    try {
+      console.warn('Tentando fallback para conta de teste (Ethereal)...');
+      const testTransporter = await createTransporter();
+      const mailOptions: any = {
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to,
+        subject,
+        html
+      };
+      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+        mailOptions.attachments = attachments.map((a: any) => ({
+          filename: a.filename,
+          content: a.content,
+          contentType: a.contentType
+        }));
+      }
+      const info = await testTransporter.sendMail(mailOptions);
+      const preview = nodemailer.getTestMessageUrl(info);
+      if (preview) console.log('E-mail preview URL (fallback):', preview);
+      return true;
+    } catch (err2) {
+      console.error('Fallback Ethereal também falhou:', err2);
+      return false;
+    }
   }
 }
 
