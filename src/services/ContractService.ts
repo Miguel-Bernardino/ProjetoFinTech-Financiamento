@@ -37,7 +37,7 @@ export async function signContract(financeId: string, userId: string, userEmail?
         await finance.save();
 
         // Buscar dados do usuário para enviar email
-        let userEmail = '';
+        let resolvedUserEmail = userEmail || '';
         let userName = '';
         const userServiceUrl = process.env.USER_SERVICE_URL;
         
@@ -45,8 +45,8 @@ export async function signContract(financeId: string, userId: string, userEmail?
             try {
                 const userResponse = await fetch(`${userServiceUrl}/users/${userId}`);
                 if (userResponse.ok) {
-                    const userData = await userResponse.json();
-                    userEmail = userData.email || userData.data?.email;
+                    const userData: any = await userResponse.json();
+                    resolvedUserEmail = resolvedUserEmail || userData.email || userData.data?.email;
                     userName = userData.name || userData.data?.name || 'Cliente';
                 }
             } catch (error) {
@@ -55,7 +55,7 @@ export async function signContract(financeId: string, userId: string, userEmail?
         }
 
         // Enviar email de confirmação
-        if (userEmail) {
+        if (resolvedUserEmail) {
             try {
                 const emailHtml = generateContractEmail(
                     String(finance._id),
@@ -64,12 +64,12 @@ export async function signContract(financeId: string, userId: string, userEmail?
                 );
                 
                 await sendEmail({
-                    to: userEmail,
+                    to: resolvedUserEmail,
                     subject: 'Contrato de Financiamento Assinado - FinTech',
                     html: emailHtml
                 });
                 
-                console.log(`Email de confirmação enviado para ${userEmail}`);
+                console.log(`Email de confirmação enviado para ${resolvedUserEmail}`);
             } catch (error) {
                 console.error('Erro ao enviar email de confirmação:', error);
                 // Não falha a operação se o email não for enviado
@@ -129,9 +129,12 @@ async function simulateExternalSignature(finance: any, userId: string): Promise<
     });
 }
 
-function generateContractPDF(finance: any, signatureId?: string): Promise<Buffer> {
+async function generateContractPDF(finance: any, signatureId?: string): Promise<Buffer> {
     return new Promise((resolve, reject) => {
         try {
+            // Importação dinâmica para evitar problemas de build em ambientes serverless
+            // e carregar pdfkit apenas quando necessário
+            const PDFDocument = require('pdfkit');
             const doc = new PDFDocument({ size: 'A4', margin: 50 });
             const chunks: any[] = [];
 
