@@ -1,8 +1,4 @@
 import { Finance } from '../models/Finance';
-import { sendEmail, generateContractEmail } from './EmailService';
-
-// Use require for pdfkit to avoid typing issues if @types/pdfkit isn't installed
-const PDFDocument = require('pdfkit');
 
 /**
  * Assina um contrato de financiamento e notifica o microserviço de pontos
@@ -37,51 +33,6 @@ export async function signContract(financeId: string, userId: string, userEmail?
         finance.contractStatus = 'signed';
         finance.contractSignedAt = externalSignature.signedAt || new Date();
         finance.status = 'in_progress';
-        await finance.save();
-
-        // Gerar PDF do contrato assinado
-        const pdfBuffer = await generateContractPDF(finance, externalSignature.signatureId);
-
-        // Enviar cópia por e-mail para o usuário. Preferir email vindo do token (userEmail).
-        let to: string | undefined = undefined;
-        if (userEmail) {
-            to = userEmail;
-        } else if ((finance as any).userEmail) {
-            // If finance doc stores an email field, use it
-            to = (finance as any).userEmail;
-        } else if (process.env.EMAIL_DOMAIN) {
-            // Fallback to constructing an email from userId and configured domain
-            to = `${finance.userId}@${process.env.EMAIL_DOMAIN}`;
-        }
-
-        const subject = `Cópia do seu contrato - ${finance._id}`;
-        const html = generateContractEmail(String(finance._id), 'Cliente', finance);
-
-        let emailSent = false;
-        if (to) {
-            emailSent = await sendEmail({
-                to,
-                subject,
-                html,
-                attachments: [
-                    {
-                        filename: `contract-${finance._id}.pdf`,
-                        content: pdfBuffer,
-                        contentType: 'application/pdf'
-                    }
-                ]
-            });
-        } else {
-            console.warn('Nenhum destinatário de e-mail disponível para enviar contrato. Marque para retry ou registre evento.');
-        }
-
-        // Atualizar status final conforme resultado do envio
-        if (emailSent) {
-            finance.status = 'completed';
-        } else {
-            // Mantemos in_progress, mas registramos tentativas/erro (simplificado)
-            finance.status = 'in_progress';
-        }
         await finance.save();
 
         // Notificar microserviço de pontos (API externa da outra equipe)
