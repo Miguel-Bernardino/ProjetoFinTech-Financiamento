@@ -1,4 +1,5 @@
 import { Finance } from '../models/Finance';
+import { sendEmail, generateContractEmail } from './EmailService';
 
 /**
  * Assina um contrato de financiamento e notifica o microserviço de pontos
@@ -31,6 +32,46 @@ export async function signContract(financeId: string, userId: string): Promise<a
         finance.contractSignedAt = new Date();
         finance.status = 'in_progress';
         await finance.save();
+
+        // Buscar dados do usuário para enviar email
+        let userEmail = '';
+        let userName = '';
+        const userServiceUrl = process.env.USER_SERVICE_URL;
+        
+        if (userServiceUrl) {
+            try {
+                const userResponse = await fetch(`${userServiceUrl}/users/${userId}`);
+                if (userResponse.ok) {
+                    const userData = await userResponse.json();
+                    userEmail = userData.email || userData.data?.email;
+                    userName = userData.name || userData.data?.name || 'Cliente';
+                }
+            } catch (error) {
+                console.error('Erro ao buscar dados do usuário:', error);
+            }
+        }
+
+        // Enviar email de confirmação
+        if (userEmail) {
+            try {
+                const emailHtml = generateContractEmail(
+                    String(finance._id),
+                    userName,
+                    finance
+                );
+                
+                await sendEmail({
+                    to: userEmail,
+                    subject: 'Contrato de Financiamento Assinado - FinTech',
+                    html: emailHtml
+                });
+                
+                console.log(`Email de confirmação enviado para ${userEmail}`);
+            } catch (error) {
+                console.error('Erro ao enviar email de confirmação:', error);
+                // Não falha a operação se o email não for enviado
+            }
+        }
 
         // Notificar microserviço de pontos (API externa da outra equipe)
         const pointsServiceUrl = process.env.POINTS_SERVICE_URL;
