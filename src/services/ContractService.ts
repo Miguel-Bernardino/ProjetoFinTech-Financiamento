@@ -1,9 +1,13 @@
 import { Finance } from '../models/Finance';
+import { sendEmail, generateContractEmail } from './EmailService';
+
+// Use require for pdfkit to avoid typing issues if @types/pdfkit isn't installed
+const PDFDocument = require('pdfkit');
 
 /**
  * Assina um contrato de financiamento e notifica o microserviço de pontos
  */
-export async function signContract(financeId: string, userId: string): Promise<any> {
+export async function signContract(financeId: string, userId: string, userEmail?: string): Promise<any> {
     try {
         // Buscar financiamento
         const finance = await Finance.findById(financeId);
@@ -26,10 +30,58 @@ export async function signContract(financeId: string, userId: string): Promise<a
             return { status: 400, message: 'Só é possível assinar contratos de financiamentos aprovados.' };
         }
 
-        // Atualizar status do contrato
+        // Simular integração com provedor externo de assinatura digital
+        const externalSignature = await simulateExternalSignature(finance, userId);
+
+        // Atualizar status do contrato localmente
         finance.contractStatus = 'signed';
-        finance.contractSignedAt = new Date();
+        finance.contractSignedAt = externalSignature.signedAt || new Date();
         finance.status = 'in_progress';
+        await finance.save();
+
+        // Gerar PDF do contrato assinado
+        const pdfBuffer = await generateContractPDF(finance, externalSignature.signatureId);
+
+        // Enviar cópia por e-mail para o usuário. Preferir email vindo do token (userEmail).
+        let to: string | undefined = undefined;
+        if (userEmail) {
+            to = userEmail;
+        } else if ((finance as any).userEmail) {
+            // If finance doc stores an email field, use it
+            to = (finance as any).userEmail;
+        } else if (process.env.EMAIL_DOMAIN) {
+            // Fallback to constructing an email from userId and configured domain
+            to = `${finance.userId}@${process.env.EMAIL_DOMAIN}`;
+        }
+
+        const subject = `Cópia do seu contrato - ${finance._id}`;
+        const html = generateContractEmail(String(finance._id), 'Cliente', finance);
+
+        let emailSent = false;
+        if (to) {
+            emailSent = await sendEmail({
+                to,
+                subject,
+                html,
+                attachments: [
+                    {
+                        filename: `contract-${finance._id}.pdf`,
+                        content: pdfBuffer,
+                        contentType: 'application/pdf'
+                    }
+                ]
+            });
+        } else {
+            console.warn('Nenhum destinatário de e-mail disponível para enviar contrato. Marque para retry ou registre evento.');
+        }
+
+        // Atualizar status final conforme resultado do envio
+        if (emailSent) {
+            finance.status = 'completed';
+        } else {
+            // Mantemos in_progress, mas registramos tentativas/erro (simplificado)
+            finance.status = 'in_progress';
+        }
         await finance.save();
 
         // Notificar microserviço de pontos (API externa da outra equipe)
@@ -73,6 +125,53 @@ export async function signContract(financeId: string, userId: string): Promise<a
         console.error('Erro ao assinar contrato:', error);
         return { status: 500, message: 'Erro ao assinar o contrato.' };
     }
+}
+
+async function simulateExternalSignature(finance: any, userId: string): Promise<{ signatureId: string; signedAt: Date }> {
+    // Em produção, aqui haveria uma chamada a DocuSign/Clicksign/etc.
+    // Para este repositório criamos uma simulação que retorna um id de assinatura
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve({ signatureId: `sig_${String(finance._id)}_${Date.now()}`, signedAt: new Date() });
+        }, 300);
+    });
+}
+
+function generateContractPDF(finance: any, signatureId?: string): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+        try {
+            const doc = new PDFDocument({ size: 'A4', margin: 50 });
+            const chunks: any[] = [];
+
+            doc.on('data', (chunk: any) => chunks.push(chunk));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+            doc.fontSize(20).text('Contrato de Financiamento', { align: 'center' });
+            doc.moveDown();
+
+            doc.fontSize(12).text(`Contrato ID: ${finance._id}`);
+            doc.text(`Cliente (userId): ${finance.userId}`);
+            doc.text(`Marca/Modelo: ${finance.brand} ${finance.modelName}`);
+            doc.text(`Valor Total: R$ ${Number(finance.value).toFixed(2)}`);
+            doc.text(`Entrada: R$ ${Number(finance.downPayment || 0).toFixed(2)}`);
+            doc.text(`Parcelas: ${finance.countOfMonths}x de R$ ${Number(finance.installmentValue || 0).toFixed(2)}`);
+            doc.text(`Taxa de Juros (anual): ${Number(finance.interestRate || 0).toFixed(4)}`);
+            doc.moveDown();
+
+            doc.text('Termos e Condições:', { underline: true });
+            doc.fontSize(10).text('Este documento representa os termos do financiamento. A assinatura é equivalente ao aceite do cliente.');
+            doc.moveDown();
+
+            doc.text(`ID da Assinatura Eletrônica: ${signatureId || 'N/A'}`);
+            doc.text(`Data de Assinatura: ${finance.contractSignedAt ? finance.contractSignedAt.toISOString() : new Date().toISOString()}`);
+
+            doc.addPage().fontSize(12).text('Cópia do contrato (cont.)');
+
+            doc.end();
+        } catch (err) {
+            reject(err);
+        }
+    });
 }
 
 export default {

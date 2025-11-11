@@ -23,7 +23,17 @@ vi.mock('../models/Finance', () => ({
   Finance: {
     create: vi.fn(async (payload: any) => {
       console.log('Mocked Finance.create called with payload:', payload);
-      return { _id: 'finance-1', ...payload };
+      return { 
+        _id: 'finance-1', 
+        ...payload,
+        vehicleSpecs: {
+          brand: 'Toyota',
+          modelname: 'Corolla',
+          type: 'Sedan',
+          horsepower: 150,
+          doors: 4
+        }
+      };
     })
   }
 }));

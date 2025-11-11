@@ -23,29 +23,48 @@ export const protectedMiddleware = (req: Request, res: Response, next: NextFunct
       return res.status(401).json({ status: 401, message: '❌Não autorizado: token ausente.' });
     }
 
-    fetch(process.env.USER_SERVICE_URL + '/auth/token/introspect', {
+    (async () => {
+      // Primary introspect endpoint
+      const base = process.env.USER_SERVICE_URL || '';
+      const tryEndpoints = [
+        `${base}/auth/token/introspect`,
+        `${base}/validate-token`,
+        `${base}/auth/validate-token`,
+        `${base}/auth/token/validate`
+      ];
 
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ token })
-      
-    }).then(response => {
+      let lastError: any = null;
+      for (const url of tryEndpoints) {
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+          });
 
-      if (!response.ok) {
-        throw new Error('Token inválido');
+          if (!response.ok) {
+            lastError = new Error(`Status ${response.status} from ${url}`);
+            continue; // try next endpoint
+          }
+
+          const data: any = await response.json();
+          // Support different shapes: { user }, { _id, email, role }, or { user: { ... } }
+          const user = data.user ? data.user : (data._id ? data : null);
+          if (!user) {
+            lastError = new Error(`Invalid user payload from ${url}`);
+            continue;
+          }
+
+          (req as any).user = user;
+          return next();
+        } catch (err) {
+          lastError = err;
+          // try next
+        }
       }
 
-      return response.json();
-
-    }).then(data => {
-      
-      (req as any).user = data.user;
-      next();
-      
-    }).catch(error => {
+      console.error('protectedMiddleware: all user-service endpoints failed', lastError);
       return res.status(401).json({ status: 401, message: '❌ Não autorizado: token inválido.' });
-    });
+    })();
 
 }

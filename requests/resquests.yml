@@ -394,7 +394,323 @@
 			]
 		},
 		{
-			"name": "4. Tasks",
+			"name": "4. Financiamentos",
+			"item": [
+				{
+					"name": "Criar Financiamento",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"brand\": \"Toyota\",\n    \"modelName\": \"Corolla\",\n    \"type\": \"Sedan\",\n    \"value\": 50000,\n    \"countOfMonths\": 60,\n    \"downPayment\": 10000,\n    \"interestRate\": 0.08\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/finances",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"finances"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Obter Financiamentos do Usuário",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/finances",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"finances"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Obter Financiamento por ID",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/finances/{{finance_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"finances",
+								"{{finance_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Assinar Contrato + Enviar E-mail ✅",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Nota: Certifique-se de que o financiamento foi criado e está com status 'approved'",
+									"// Antes de chamar este endpoint. Finance.status deve ser 'approved' para poder assinar.",
+									"console.log('Teste: Assinatura de Contrato com Envio de E-mail');"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Valida resposta do servidor",
+									"pm.test('Status 200 - Contrato Assinado com Sucesso', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response contém contractStatus signed', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.finance.contractStatus).to.equal('signed');",
+									"});",
+									"",
+									"pm.test('Response contém contractSignedAt com data', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.finance.contractSignedAt).to.exist;",
+									"});",
+									"",
+									"pm.test('Finance status mudou para completed', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.finance.status).to.equal('completed');",
+									"});",
+									"",
+									"pm.test('Mensagem de sucesso presente', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('Contrato assinado com sucesso');",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/finances/{{finance_id}}/sign-contract",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"finances",
+								"{{finance_id}}",
+								"sign-contract"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Assinar Contrato - Erro (Não Aprovado)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/finances/{{finance_id}}/sign-contract",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"finances",
+								"{{finance_id}}",
+								"sign-contract"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Assinar Contrato - Erro (Já Assinado)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/finances/{{finance_id}}/sign-contract",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"finances",
+								"{{finance_id}}",
+								"sign-contract"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Assinar Contrato - Erro (Sem Autenticação)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/finances/{{finance_id}}/sign-contract",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"finances",
+								"{{finance_id}}",
+								"sign-contract"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Tasks",
 			"item": [
 				{
 					"name": "Criar Tarefa",

@@ -1,6 +1,7 @@
-import nodemailer from 'nodemailer';
+// Use require to avoid needing @types for nodemailer in this repo
+const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
+const transporter: any = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: false,
@@ -10,20 +11,39 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+interface EmailAttachment {
+  filename: string;
+  content: Buffer | string;
+  contentType?: string;
+}
+
 interface EmailOptions {
   to: string;
   subject: string;
   html: string;
+  attachments?: EmailAttachment[];
 }
 
-export async function sendEmail({ to, subject, html }: EmailOptions): Promise<boolean> {
+export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  const { to, subject, html, attachments } = options;
+
   try {
-    await transporter.sendMail({
+    const mailOptions: any = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to,
       subject,
       html
-    });
+    };
+
+    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      mailOptions.attachments = attachments.map((a: any) => ({
+        filename: a.filename,
+        content: a.content,
+        contentType: a.contentType
+      }));
+    }
+
+    await transporter.sendMail(mailOptions);
     return true;
   } catch (error) {
     console.error('Erro ao enviar e-mail:', error);
