@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import financeService from '../services/FinanceServices';
+import { IFinance } from '../models/Finance';
 
 // Helper: tenta obter o ID do usuário a partir do token (req.user)
 async function resolveUserIdFromRequest(req: Request): Promise<string | null> {
@@ -33,6 +34,7 @@ export const CreateFinance = async (req: Request, res: Response, next: NextFunct
         if (!userId) return res.status(400).json({ message: 'ID do usuário é obrigatório.' });
 
         const payload = req.body;
+        payload.deleted = false;
         const result = await financeService.createFinance(userId, { ...payload });
         return res.status(result.status).json(result);
     } catch (error) {
@@ -42,10 +44,6 @@ export const CreateFinance = async (req: Request, res: Response, next: NextFunct
 
 export const GetFinancesByUserId = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Admins não podem listar seus próprios financiamentos (não deveriam ter)
-        if (isUserAdmin(req)) {
-            return res.status(403).json({ message: 'Administradores não possuem financiamentos próprios.' });
-        }
 
         const userId = await resolveUserIdFromRequest(req);
         if (!userId) return res.status(400).json({ message: 'ID do usuário é obrigatório.' });
@@ -59,11 +57,6 @@ export const GetFinancesByUserId = async (req: Request, res: Response, next: Nex
 
 export const GetFinanceById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Admins não podem acessar financiamentos como se fossem donos
-        if (isUserAdmin(req)) {
-            return res.status(403).json({ message: 'Administradores não podem acessar financiamentos desta forma.' });
-        }
-
         const financeId = req.params.id;
         const userId = await resolveUserIdFromRequest(req);
         if (!userId || !financeId) return res.status(400).json({ message: 'ID do usuário e ID do financiamento são obrigatórios.' });
@@ -78,7 +71,7 @@ export const GetFinanceById = async (req: Request, res: Response, next: NextFunc
 export const FullUpdateFinance = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Admins não podem atualizar financiamentos desta forma (apenas alterar status via lógica específica)
-        if (isUserAdmin(req)) {
+        if (!isUserAdmin(req)) {
             return res.status(403).json({ message: 'Administradores não podem atualizar financiamentos como usuário comum.' });
         }
 
@@ -86,7 +79,14 @@ export const FullUpdateFinance = async (req: Request, res: Response, next: NextF
         const userId = await resolveUserIdFromRequest(req);
         if (!userId || !financeId) return res.status(400).json({ message: 'ID do usuário e ID do financiamento são obrigatórios.' });
 
-        const updateData = req.body;
+        let updateData: IFinance = req.body;
+
+        if (updateData.deleted === true) {
+            return res.status(403).json({ message: 'Não é permitido deletar financiamentos desta forma.' });
+        }
+        
+        updateData.deleted = false;
+
         if (updateData.userId && updateData.userId !== userId) {
             return res.status(403).json({ message: 'Não é permitido alterar o ID do usuário do financiamento.' });
         }
@@ -101,7 +101,7 @@ export const FullUpdateFinance = async (req: Request, res: Response, next: NextF
 export const PartialUpdateFinance = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Admins não podem atualizar financiamentos desta forma (apenas alterar status via lógica específica)
-        if (isUserAdmin(req)) {
+        if (!isUserAdmin(req)) {
             return res.status(403).json({ message: 'Administradores não podem atualizar financiamentos como usuário comum.' });
         }
 
@@ -110,6 +110,11 @@ export const PartialUpdateFinance = async (req: Request, res: Response, next: Ne
         if (!userId || !financeId) return res.status(400).json({ message: 'ID do usuário e ID do financiamento são obrigatórios.' });
 
         const updateData = req.body;
+        
+        if (updateData.deleted === true) {
+            return res.status(403).json({ message: 'Não é permitido deletar financiamentos desta forma.' });
+        }  
+
         const result = await financeService.updateFinance(financeId, userId, updateData);
         return res.status(result.status).json(result);
     } catch (error) {
@@ -119,16 +124,17 @@ export const PartialUpdateFinance = async (req: Request, res: Response, next: Ne
 
 export const DeleteFinance = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Admins não podem deletar financiamentos desta forma
-        if (isUserAdmin(req)) {
-            return res.status(403).json({ message: 'Administradores não podem deletar financiamentos como usuário comum.' });
+
+        if (!isUserAdmin(req)) {
+            return res.status(403).json({ message: 'Usuário não autorizado.' });
         }
 
-        const financeId = req.params.id;
-        const userId = await resolveUserIdFromRequest(req);
-        if (!userId || !financeId) return res.status(400).json({ message: 'ID do usuário e ID do financiamento são obrigatórios.' });
+        const financeId = req.body.id;
+        const userId = req.body.userId;
+        if (!userId || !financeId) 
+            return res.status(400).json({ message: 'ID do usuário e ID do financiamento são obrigatórios.' });
 
-        const result = await financeService.deleteFinance(financeId, userId);
+        const result = await financeService.deleteFinance(financeId, userId); 
         return res.status(result.status).json(result);
     } catch (error) {
         next(error);
@@ -136,6 +142,21 @@ export const DeleteFinance = async (req: Request, res: Response, next: NextFunct
 };
 
 export const RestoreFinance = async (req: Request, res: Response, next: NextFunction) => {
-    // Restauração de exclusão não implementada: usar soft-delete na model se necessário.
-    return res.status(501).json({ message: 'Restauração de financiamento não implementada.' });
+    try {
+        console.log('RestoreFinance controller called');
+        if (!isUserAdmin(req)) {
+            return res.status(403).json({ message: 'Usuário não autorizado.' });
+        }
+
+        const financeId = req.body.id;
+        const userId = req.body.userId;
+        if (!userId || !financeId) 
+            return res.status(400).json({ message: 'ID do usuário e ID do financiamento são obrigatórios.' });
+        
+        const result = await financeService.RestoreFinance(financeId, userId);
+        return res.status(result.status).json(result);
+
+    } catch (error) {
+        next(error);
+    }
 };

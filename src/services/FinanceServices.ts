@@ -1,3 +1,4 @@
+import { json } from 'stream/consumers';
 import { IFinance, Finance } from '../models/Finance';
 
 async function isValidUser(financeId: any, userTokenedId: string): Promise<any> {
@@ -67,14 +68,21 @@ export async function createFinance(userID: string, payload: Partial<IFinance>):
             try {
                 /*
                 // GET simples - apenas recebe os dados disponíveis da API
-                const resp = await fetch(baseUrl);
+                const resp = await fetch(baseUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({userId: userID})
+                });
                 if (!resp.ok) {
-                    throw new Error(`Falha ao obter dados do veículo: status ${resp.status}`);
+                    throw new Error(`Falha ao obter dados do veículo: status: ${resp.status} erro: ${resp.statusText} body: ${await resp.text()}`);
                 }
 
                 const data = await resp.json();
                 */
-                const data = {brand: "Toyota", modelName: "Corolla", type: "Sedan"};
+                const data = {brand: "Toyota", modelName: "Corolla", type: "Sedan", value: 20000}; // Mocked data for illustration  
+                
                 // A API retorna os dados com {brand, modelname, type, ...}
                 vehicleSpecs = data;
                 
@@ -90,7 +98,7 @@ export async function createFinance(userID: string, payload: Partial<IFinance>):
             brand: vehicleSpecs.brand,
             modelName: vehicleSpecs.modelName,
             type: vehicleSpecs.type,
-            value,
+            value: vehicleSpecs.value,
             countOfMonths,
             userId,
             downPayment,
@@ -165,16 +173,41 @@ export const updateFinance = async (financeId: string, userId: string, updateDat
 
 export const deleteFinance = async (financeId: string, userId: string): Promise<any> => {
     try {
+
         const finance = await Finance.findById(financeId);
         if (!finance) return { status: 404, message: 'Financiamento não encontrado.' };
 
         const validUser = await isValidUser(finance._id, userId);
         if (!validUser || validUser.status >= 400) return { status: 403, message: 'Acesso negado.' };
 
-        await Finance.findByIdAndDelete(financeId);
+        await updateFinance(financeId, userId, { deleted: true });
+
         return { status: 200, message: 'Financiamento removido com sucesso.' };
+
     } catch (error) {
+
         return { status: 500, message: 'Erro ao deletar o financiamento.' };
+    }
+};
+
+export const RestoreFinance = async (financeId: string, userId: string): Promise<any> => {
+    try {
+        
+        const finance = await Finance.findById(financeId);  
+        if (!finance) 
+            return { status: 404, message: 'Financiamento não encontrado.' };
+        
+        const validUser = await isValidUser(finance._id, userId);
+        if (!validUser || validUser.status >= 400) 
+            return { status: 403, message: 'Acesso negado.' };
+        
+        await updateFinance(financeId, userId, { deleted: false });
+        
+        return { status: 200, message: 'Financiamento restaurado com sucesso.' };
+    }
+    catch (error) {
+
+        return { status: 500, message: 'Erro ao restaurar o financiamento.' };
     }
 };
 
@@ -185,5 +218,6 @@ export default {
     updateFinance,
     deleteFinance,
     calculateInstallment,
-    calculateAmortizationSchedule
+    calculateAmortizationSchedule,
+    RestoreFinance
 };

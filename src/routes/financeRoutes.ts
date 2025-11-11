@@ -18,7 +18,7 @@ router.put('/finances/:id', financeController.FullUpdateFinance);
 router.patch('/finances/:id', financeController.PartialUpdateFinance);
 
 //Delecao e restauracao de financiamentos
-router.delete('/finances/:id', financeController.DeleteFinance);
-router.patch('/finances/:id/restore', financeController.RestoreFinance);
+router.delete('/finances', financeController.DeleteFinance);
+router.patch('/restore', financeController.RestoreFinance);
 
 export default router;

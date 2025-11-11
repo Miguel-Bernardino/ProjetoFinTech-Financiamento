@@ -15,6 +15,7 @@ export interface IFinance extends Document {
   vehicleSpecs?: any; // informações obtidas da API externa sobre o veículo (opcional)
   financeDate: Date; // Data do Financiamento
   status: "approved" | "rejected" | "pending" | "in_progress" | "completed"; // Status mais detalhado
+  deleted: boolean;
 }
 
 export const financeSchema = new Schema<IFinance>(
@@ -81,6 +82,10 @@ export const financeSchema = new Schema<IFinance>(
       enum: ["pending", "approved", "in_progress", "completed", "rejected"],
       default: "pending"
     },
+    deleted: {
+      type: Boolean,
+      default: false
+    }
 
   },
   { timestamps: true }
