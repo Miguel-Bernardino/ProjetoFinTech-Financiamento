@@ -4,7 +4,6 @@ import express, { Request, Response } from "express";
 import { connectDB } from "./database/connect"; // ← Função de conexão
 import { errorHandler } from './middleware/errorMiddlleware';
 import protectedRoute from "./routes/protectedRoute";
-import userRoute from './routes/userRoute';
 import financeRoute from "./routes/financeRoutes";
 import cors from 'cors';
 
@@ -27,7 +26,7 @@ app.get("/", (req: Request, res: Response) => {
   
   res.status(200).json({ 
 
-    message: '🚀 Projeto Backend em Express com Autenticação JWT e MongoDB funcionando!',
+    message: '🚀 Projeto Backend do FinTech funcionando!',
     status: 'WORKING',
   
   });
@@ -36,7 +35,6 @@ app.get("/", (req: Request, res: Response) => {
 
 // Rotas
 app.use('/api', protectedRoute);
-app.use('/api', userRoute);
 app.use('/api', financeRoute);
 
 // Middleware de tratamento de erros

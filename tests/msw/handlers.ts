@@ -14,7 +14,7 @@ export const handlers = [
     });
   }),
 
-  // USER_SERVICE_URL/validate-token - Valida token JWT
+  // USER_SERVICE_URL/validate-token - Valida token JWT e retorna user com _id
   http.post('http://localhost:4000/api/users/validate-token', async ({ request }) => {
     const body = await request.json() as any;
     const { token } = body;
@@ -23,6 +23,7 @@ export const handlers = [
     if (token === 'valid-token') {
       return HttpResponse.json({
         user: {
+          _id: 'user-1',
           email: 'test@example.com',
           role: 'user'
         }

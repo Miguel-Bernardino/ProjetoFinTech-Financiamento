@@ -1,30 +1,15 @@
 import { IFinance, Finance } from '../models/Finance';
-import { IUser, User } from '../models/User';
-
-async function isUserExists(userId: any): Promise<any> {
-    if (!userId) return null;
-    const user = await User.findOne({ _id: userId });
-    return user;
-}
 
 async function isValidUser(financeId: any, userTokenedId: string): Promise<any> {
-    const query = { _id: financeId };
+
+    const query = { _id: financeId, userId: userTokenedId };
     const finance = await Finance.findOne(query);
 
     if (!finance) {
         return { status: 404, message: 'Financiamento não encontrado.' };
     }
 
-    if (!userTokenedId || finance.userId !== userTokenedId) {
-        return { status: 403, message: 'Acesso negado ao financiamento.' };
-    }
-
-    const user = await User.findOne({ _id: userTokenedId });
-    if (!user) {
-        return { status: 404, message: 'Usuário não encontrado.' };
-    }
-
-    return { status: 200, user };
+    return { status: 200, user: finance.userId };
 }
 
 /**
@@ -61,13 +46,7 @@ export function calculateAmortizationSchedule(principal: number, annualInterestR
 
 export async function createFinance(userID: string, payload: Partial<IFinance>): Promise<any> {
     try {
-        const { userId, value, downPayment = 0, interestRate = 0, countOfMonths = 0, financeDate = new Date(), brand, modelName, type, status } = payload as any;
-        const usertokened = await isUserExists(userID);
-        const user = await isUserExists(userId);
-
-        if (!user || !usertokened) {
-            return { status: 403, message: 'Usuário inválido.' };
-        }
+        const { userId, value, downPayment = 0, interestRate = 0, countOfMonths = 0, financeDate = new Date(), status } = payload as any;
 
         if (userID !== userId) {
             return { status: 403, message: 'Não é permitido criar financiamento para outro usuário.' };
@@ -86,6 +65,7 @@ export async function createFinance(userID: string, payload: Partial<IFinance>):
         const baseUrl = process.env.VEHICLE_API_URL;
         if (baseUrl) {
             try {
+                /*
                 // GET simples - apenas recebe os dados disponíveis da API
                 const resp = await fetch(baseUrl);
                 if (!resp.ok) {
@@ -93,7 +73,8 @@ export async function createFinance(userID: string, payload: Partial<IFinance>):
                 }
 
                 const data = await resp.json();
-                
+                */
+                const data = {brand: "Toyota", modelName: "Corolla", type: "Sedan"};
                 // A API retorna os dados com {brand, modelname, type, ...}
                 vehicleSpecs = data;
                 
@@ -106,9 +87,9 @@ export async function createFinance(userID: string, payload: Partial<IFinance>):
         }
 
         const newFinance = await Finance.create({
-            brand,
-            modelName,
-            type,
+            brand: vehicleSpecs.brand,
+            modelName: vehicleSpecs.modelName,
+            type: vehicleSpecs.type,
             value,
             countOfMonths,
             userId,
@@ -117,7 +98,6 @@ export async function createFinance(userID: string, payload: Partial<IFinance>):
             installmentValue,
             financeDate,
             status: status ?? 'pending',
-            vehicleSpecs
         } as any);
 
         return { status: 201, finance: newFinance };
@@ -128,10 +108,14 @@ export async function createFinance(userID: string, payload: Partial<IFinance>):
 
 export const getFinancesByUserId = async (userId: string, filters: any): Promise<any> => {
     try {
-        const user = await isUserExists(userId);
-        if (!user) return { status: 404, message: 'Usuário não encontrado.' };
+        if (!userId) return { status: 404, message: 'Financiamentos ou Usuário não encontrados.' };
 
         const finances = await Finance.find({ userId: userId, ...filters });
+
+        if(!finances || finances.length === 0) {
+            return { status: 404, message: 'Financiamentos ou Usuário não encontrados.' };
+        }
+
         return { status: 200, finances };
     } catch (error) {
         return { status: 500, message: 'Erro ao buscar os financiamentos.' };

@@ -1,10 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { verify, JwtPayload } from 'jsonwebtoken';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtPayload;
+      user?: any;
     }
   }
 }
@@ -24,13 +23,13 @@ export const protectedMiddleware = (req: Request, res: Response, next: NextFunct
       return res.status(401).json({ status: 401, message: '❌Não autorizado: token ausente.' });
     }
 
-    fetch(process.env.USER_SERVICE_URL + '/validate-token', {
+    fetch(process.env.USER_SERVICE_URL + '/auth/token/introspect', {
 
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ token })
       
     }).then(response => {
 

@@ -2,7 +2,6 @@ import { beforeAll, afterAll, beforeEach, describe, it, expect, vi } from 'vites
 import { startServer, stopServer, resetHandlers } from './setupTests';
 import express, { Request, Response, NextFunction } from 'express';
 import { protectedMiddleware } from '../middleware/protectedMiddleware';
-import { UserMiddleware } from '../middleware/UserMiddleware';
 
 // Mock dos modelos Mongoose
 vi.mock('../models/User', () => ({
@@ -31,7 +30,6 @@ vi.mock('../models/Finance', () => ({
 
 // Importar após os mocks
 import financeService from '../services/FinanceServices';
-import { User } from '../models/User';
 
 beforeAll(() => {
   startServer();
@@ -68,27 +66,17 @@ describe('Finance Integration Tests - com middlewares', () => {
       });
     });
 
-    // Verificar que o middleware populou req.user (apenas email + role)
+    // Verificar que o middleware populou req.user com _id
     expect(mockNext).toHaveBeenCalled();
     expect(mockReq.user).toBeDefined();
+    expect(mockReq.user._id).toBe('user-1');
     expect(mockReq.user.email).toBe('test@example.com');
-    expect(mockReq.user._id).toBeUndefined();
 
     console.log('req.user após protectedMiddleware:', mockReq.user);
 
-    // Agora executar UserMiddleware
-    const mockNext2 = vi.fn();
-    await UserMiddleware(mockReq, mockRes, mockNext2);
+    // Agora criar o financiamento usando o userId que veio do protectedMiddleware
+    const userId = mockReq.user._id;
 
-    expect(mockNext2).toHaveBeenCalled();
-    console.log('req.body após UserMiddleware:', mockReq.body);
-
-    // Buscar o id do usuário pelo email (como faria o controller/middleware)
-    const userDoc = await User.findOne({ email: mockReq.user.email });
-    expect(userDoc).toBeDefined();
-    const userId = (userDoc as any)._id;
-
-    // Agora criar o financiamento usando o userId obtido
     const payload = {
       userId,
       value: 20000,

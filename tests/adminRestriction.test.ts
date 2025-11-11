@@ -1,8 +1,7 @@
 import { beforeAll, afterAll, beforeEach, describe, it, expect, vi } from 'vitest';
 import { startServer, stopServer, resetHandlers, server } from './setupTests';
 import { protectedMiddleware } from '../src/middleware/protectedMiddleware';
-import { UserMiddleware } from '../src/middleware/UserMiddleware';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse} from 'msw';
 
 // Mock dos modelos Mongoose
 vi.mock('../src/models/User', () => ({
@@ -31,7 +30,7 @@ vi.mock('../src/models/Finance', () => ({
 
 // Importar após os mocks
 import financeService from '../src/services/FinanceServices';
-import { CreateTask, GetTasksByUserId, GetTaskById, FullUpdateTask, PartialUpdateTask, DeleteTask } from '../src/controllers/financeController';
+import { CreateFinance, GetFinancesByUserId, GetFinanceById, FullUpdateFinance, PartialUpdateFinance, DeleteFinance } from '../src/controllers/financeController';
 
 beforeAll(() => {
   startServer();
@@ -52,6 +51,7 @@ beforeEach(() => {
       if (token === 'admin-token') {
         return HttpResponse.json({
           user: {
+            _id: 'admin-1',
             email: 'admin@example.com',
             role: 'admin'
           }
@@ -102,7 +102,7 @@ describe('Admin Restrictions - Finance Operations', () => {
     expect(mockReq.user.role).toBe('admin');
 
     // Tentar criar financiamento
-    await CreateTask(mockReq, mockRes, mockNext);
+  await CreateFinance(mockReq, mockRes, mockNext);
 
     // Deve ter retornado 403
     expect(mockRes.status).toHaveBeenCalledWith(403);
@@ -134,7 +134,7 @@ describe('Admin Restrictions - Finance Operations', () => {
 
     expect(mockReq.user.role).toBe('admin');
 
-    await GetTasksByUserId(mockReq, mockRes, mockNext);
+  await GetFinancesByUserId(mockReq, mockRes, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(403);
     expect(mockRes.json).toHaveBeenCalledWith({ message: 'Administradores não possuem financiamentos próprios.' });
@@ -165,7 +165,7 @@ describe('Admin Restrictions - Finance Operations', () => {
 
     expect(mockReq.user.role).toBe('admin');
 
-    await GetTaskById(mockReq, mockRes, mockNext);
+  await GetFinanceById(mockReq, mockRes, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(403);
     expect(mockRes.json).toHaveBeenCalledWith({ message: 'Administradores não podem acessar financiamentos desta forma.' });
@@ -197,7 +197,7 @@ describe('Admin Restrictions - Finance Operations', () => {
 
     expect(mockReq.user.role).toBe('admin');
 
-    await FullUpdateTask(mockReq, mockRes, mockNext);
+  await FullUpdateFinance(mockReq, mockRes, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(403);
     expect(mockRes.json).toHaveBeenCalledWith({ message: 'Administradores não podem atualizar financiamentos como usuário comum.' });
@@ -229,7 +229,7 @@ describe('Admin Restrictions - Finance Operations', () => {
 
     expect(mockReq.user.role).toBe('admin');
 
-    await PartialUpdateTask(mockReq, mockRes, mockNext);
+  await PartialUpdateFinance(mockReq, mockRes, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(403);
     expect(mockRes.json).toHaveBeenCalledWith({ message: 'Administradores não podem atualizar financiamentos como usuário comum.' });
@@ -260,7 +260,7 @@ describe('Admin Restrictions - Finance Operations', () => {
 
     expect(mockReq.user.role).toBe('admin');
 
-    await DeleteTask(mockReq, mockRes, mockNext);
+  await DeleteFinance(mockReq, mockRes, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(403);
     expect(mockRes.json).toHaveBeenCalledWith({ message: 'Administradores não podem deletar financiamentos como usuário comum.' });

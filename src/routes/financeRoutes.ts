@@ -7,18 +7,18 @@ const router = Router();
 router.use(protectedMiddleware);
 
 //Criacao de financiamentos
-router.post('/finances', financeController.CreateTask);
+router.post('/finances', financeController.CreateFinance);
 
 //Obter financiamentos do usuario
-router.get("/finances", financeController.GetTasksByUserId);
-router.get('/finances/:id', financeController.GetTaskById);
+router.get("/finances", financeController.GetFinancesByUserId);
+router.get('/finances/:id', financeController.GetFinanceById);
 
 //Atualizacao de financiamentos
-router.put('/finances/:id', financeController.FullUpdateTask);
-router.patch('/finances/:id', financeController.PartialUpdateTask);
+router.put('/finances/:id', financeController.FullUpdateFinance);
+router.patch('/finances/:id', financeController.PartialUpdateFinance);
 
 //Delecao e restauracao de financiamentos
-router.delete('/finances/:id', financeController.DeleteTask);
-router.patch('/finances/:id/restore', financeController.restoreTask);
+router.delete('/finances/:id', financeController.DeleteFinance);
+router.patch('/finances/:id/restore', financeController.RestoreFinance);
 
 export default router;

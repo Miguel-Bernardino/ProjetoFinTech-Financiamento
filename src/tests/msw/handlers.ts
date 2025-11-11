@@ -19,12 +19,13 @@ export const handlers = [
     const body = await request.json() as any;
     const { token } = body;
 
-    // Simula validação de token
+    // Simula validação de token - retorna user com _id já cadastrado
     if (token === 'valid-token') {
       return HttpResponse.json({
         user: {
+          _id: 'user-1',
           email: 'test@example.com',
-          role: 'user'
+          role: 'client'
         }
       }, { status: 200 });
     }

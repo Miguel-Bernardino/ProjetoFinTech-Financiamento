@@ -1,17 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import financeService from '../services/FinanceServices';
-import { User } from '../models/User';
 
-// Helper: tenta obter o ID do usuário a partir do token (req.user) ou buscando pelo email
+// Helper: tenta obter o ID do usuário a partir do token (req.user)
 async function resolveUserIdFromRequest(req: Request): Promise<string | null> {
     const tokenUser = (req as any).user as any;
     if (!tokenUser) return null;
 
-    // Senão, tente buscar o usuário pelo email (o protectedMiddleware retorna email + role)
-    if (tokenUser.email) {
-        const existing = await User.findOne({ email: tokenUser.email });
-        if (existing && existing._id) return (existing as any)._id.toString();
-    }
+    // Se o protectedMiddleware retornou um user com _id, use-o
+    if (tokenUser._id) return tokenUser._id;
+    if (tokenUser.id) return tokenUser.id;
 
     return null;
 }
@@ -25,7 +22,7 @@ function isUserAdmin(req: Request): boolean {
 /* Controller mantém os nomes exportados esperados pelas rotas atuais (CreateTask, GetTasksByUserId...) 
      mas implementa lógica para financiamentos. */
 
-export const CreateTask = async (req: Request, res: Response, next: NextFunction) => {
+export const CreateFinance = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Admins não podem criar financiamentos
         if (isUserAdmin(req)) {
@@ -43,7 +40,7 @@ export const CreateTask = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const GetTasksByUserId = async (req: Request, res: Response, next: NextFunction) => {
+export const GetFinancesByUserId = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Admins não podem listar seus próprios financiamentos (não deveriam ter)
         if (isUserAdmin(req)) {
@@ -53,15 +50,14 @@ export const GetTasksByUserId = async (req: Request, res: Response, next: NextFu
         const userId = await resolveUserIdFromRequest(req);
         if (!userId) return res.status(400).json({ message: 'ID do usuário é obrigatório.' });
 
-        const filters = req.query;
-        const result = await financeService.getFinancesByUserId(userId, filters);
+        const result = await financeService.getFinancesByUserId(userId, req.body);
         return res.status(result.status).json(result);
     } catch (error) {
         next(error);
     }
 };
 
-export const GetTaskById = async (req: Request, res: Response, next: NextFunction) => {
+export const GetFinanceById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Admins não podem acessar financiamentos como se fossem donos
         if (isUserAdmin(req)) {
@@ -79,7 +75,7 @@ export const GetTaskById = async (req: Request, res: Response, next: NextFunctio
     }
 };
 
-export const FullUpdateTask = async (req: Request, res: Response, next: NextFunction) => {
+export const FullUpdateFinance = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Admins não podem atualizar financiamentos desta forma (apenas alterar status via lógica específica)
         if (isUserAdmin(req)) {
@@ -102,7 +98,7 @@ export const FullUpdateTask = async (req: Request, res: Response, next: NextFunc
     }
 };
 
-export const PartialUpdateTask = async (req: Request, res: Response, next: NextFunction) => {
+export const PartialUpdateFinance = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Admins não podem atualizar financiamentos desta forma (apenas alterar status via lógica específica)
         if (isUserAdmin(req)) {
@@ -121,7 +117,7 @@ export const PartialUpdateTask = async (req: Request, res: Response, next: NextF
     }
 };
 
-export const DeleteTask = async (req: Request, res: Response, next: NextFunction) => {
+export const DeleteFinance = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Admins não podem deletar financiamentos desta forma
         if (isUserAdmin(req)) {
@@ -139,7 +135,7 @@ export const DeleteTask = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const restoreTask = async (req: Request, res: Response, next: NextFunction) => {
+export const RestoreFinance = async (req: Request, res: Response, next: NextFunction) => {
     // Restauração de exclusão não implementada: usar soft-delete na model se necessário.
     return res.status(501).json({ message: 'Restauração de financiamento não implementada.' });
 };
