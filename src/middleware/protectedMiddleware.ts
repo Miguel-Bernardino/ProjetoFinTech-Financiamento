@@ -20,7 +20,7 @@ export const protectedMiddleware = (req: Request, res: Response, next: NextFunct
     const token = header.split(' ')[1];
 
     if(!token) {
-      return res.status(401).json({ status: 401, message: '❌Não autorizado: token ausente.' });
+      return res.status(401).json({ status: 401, message: '❌ Não autorizado: token ausente ou inválido.' });
     }
 
     (async () => {
@@ -64,7 +64,7 @@ export const protectedMiddleware = (req: Request, res: Response, next: NextFunct
       }
 
       console.error('protectedMiddleware: all user-service endpoints failed', lastError);
-      return res.status(401).json({ status: 401, message: '❌ Não autorizado: token inválido.' });
+      return res.status(401).json({ status: 401, message: '❌ Não autorizado: token ausente ou inválido.' });
     })();
 
 }
