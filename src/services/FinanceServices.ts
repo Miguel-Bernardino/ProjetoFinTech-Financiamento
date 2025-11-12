@@ -46,7 +46,7 @@ export function calculateAmortizationSchedule(principal: number, annualInterestR
 
 export async function createFinance(userID: string, payload: Partial<IFinance>): Promise<any> {
     try {
-        const { userId, value, downPayment = 0, interestRate = 0, countOfMonths = 0, financeDate = new Date(), status } = payload as any;
+        const { userId, value, downPayment = 0, interestRate = 0, countOfMonths = 0, financeDate = new Date(), status, brand,  modelName, type} = payload as any;
 
         if (userID !== userId) {
             return { status: 403, message: 'Não é permitido criar financiamento para outro usuário.' };
@@ -79,8 +79,8 @@ export async function createFinance(userID: string, payload: Partial<IFinance>):
                 }
 
                 const data = await resp.json();
-                */
-                const data = {brand: "Toyota", modelName: "Corolla", type: "Sedan", value: 20000}; // Mocked data for illustration  
+                
+                //const data = {brand: "Toyota", modelName: "Corolla", type: "Sedan", value: 20000}; // Mocked data for illustration  
                 
                 // A API retorna os dados com {brand, modelname, type, ...}
                 vehicleSpecs = data;
@@ -88,16 +88,17 @@ export async function createFinance(userID: string, payload: Partial<IFinance>):
                 if (!vehicleSpecs) {
                     throw new Error('Resposta da API de veículo vazia ou inválida.');
                 }
+                */
             } catch (err: any) {
                 throw new Error(`Não foi possível obter os dados do veículo: ${err?.message ?? err}`);
             }
         }
 
         const newFinance = await Finance.create({
-            brand: vehicleSpecs.brand,
-            modelName: vehicleSpecs.modelName,
-            type: vehicleSpecs.type,
-            value: vehicleSpecs.value,
+            brand: brand,
+            modelName: modelName,
+            type: type,
+            value: value,
             countOfMonths,
             userId,
             downPayment,
